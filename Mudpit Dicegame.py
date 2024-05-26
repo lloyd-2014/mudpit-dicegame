@@ -1,21 +1,21 @@
 from random import randint
 
 #ALL VARIABLES USED IN THE PROGRAM
-roll = []          #you start with an empty list for rolls.
-dice_number = 5          #you start each turn with 5 dice.
-mud_pit = 0         #and no dice in the mud pit.
-player_score = []              #and an empty score that will accumulate with each round.
-computer_score = []             #separately, an opposites score.
-round_count = 1             #this will go up with each round and reset for opponent.
+roll = []               #you start with an empty list for rolls.
+dice_number = 5         #you start each turn with 5 dice.
+mud_pit = 0             #and no dice in the mud pit.
+player_score = []       #and an empty score that will accumulate with each round.
+computer_score = []     #separately, an opposites score.
+round_count = 1         #this will go up with each round and reset for opponent.
 turn = 0                #0 = computer, 1 = player because i'm clever liek thaT???
 user_response = False
 running = True
 
-def player_dice_roll():
-    global mud_pit, dice_number      #Missing key to get global variable recognized in this loop.
-    for i in range(1, dice_number+1):           #This will generate a randint each time + add it to the roll list..
+def dice_roll(player):
+    global mud_pit, dice_number         #Missing key to get global variable recognized in this loop.
+    for i in range(1, dice_number+1):   #This will generate a randint each time + add it to the roll list..
         roll.append(randint(1, 6))
-    player_score.extend(roll)          #add the roll to the score list to be summed up.
+    player.extend(roll)                 #add the roll to the score list to be summed up.
     for i in roll:
         if i == 2:
             mud_pit += 1
@@ -25,19 +25,37 @@ def player_dice_roll():
             dice_number -= 1
     return roll, mud_pit
 
-def computer_dice_roll():           #I could probably eliminate this if I added an if statement dependent on turn to the score.extend above.
-    global mud_pit, dice_number
-    for i in range(1, dice_number+1):
-        roll.append(randint(1, 6))
-    computer_score.extend(roll)
-    for i in roll:
-        if i == 2:
-            mud_pit += 1
-            dice_number -= 1
-        elif i == 5:
-            mud_pit += 1
-            dice_number -= 1
-    return roll, mud_pit
+# Returns True when the player or computer wins
+def doDiceRolls(score):
+    global mud_pit, dice_number, user_response, turn, round_count
+    while dice_number > 0 and sum(score) < 200:
+        while not user_response:
+            user_response = input("Type anything to proceed with the next round: ")
+
+        if turn == 1:
+            print("-----------------\n", "Round", round_count, "for the player.")
+        else:
+            print("-----------------\n", "Round", round_count, "for the computer.")
+        dice_roll(score)
+        print("Your current score is: ", sum(score), "\n",
+        "Your roll was: ", roll, "\n",
+        "Dice in the mud pit: ", mud_pit, "\n",
+        "Number of dice to re-roll: ", dice_number)
+        round_count += 1        #after each round, this number goes up.
+        roll.clear()            #clear so it doesn't up all roles from past rounds together.
+        user_response = False   #and return False so it keeps asking for input before next round
+    if sum(score) >= 200:
+        if turn == 1:
+            print("You've won!")
+        else:
+            print("The computer won.")
+        return True # Indicates the game is over
+    if dice_number == 0:
+        mud_pit, dice_number, round_count = 0, 5, 1 # end turn by resetting mudpit for next turn + dice_number.
+        if turn == 1:
+            turn = 0 # switch to computer
+        else:
+            turn = 1 # switch to player
 
 while running:
 
@@ -55,43 +73,18 @@ while running:
 
     while sum(player_score) < 200 or sum(computer_score) < 200:
         if turn == 1:
-            while dice_number > 0 and sum(player_score) < 200:
-                while not user_response:
-                    user_response = input("Type anything to proceed with the next round: ")
-                print("-----------------\n", "Round", round_count, "for the player.")
-                player_dice_roll()
-                print("Your current score is: ", sum(player_score), "\n",
-                "Your roll was: ", roll, "\n",
-                "Dice in the mud pit: ", mud_pit, "\n",
-                "Number of dice to re-roll: ", dice_number)
-                round_count += 1   #after each round, this number goes up.
-                roll.clear()            #clear so it doesn't up all roles from past rounds together.
-                user_response = False   #and return False so it keeps asking for input before next round
-            if sum(player_score) >= 200:
-                print("You've won!")
-                break
-            if dice_number == 0:
-                mud_pit, dice_number, round_count, turn = 0, 5, 1, 0  # end turn by resetting mudpit for next turn + dice_number.
+            endGame = doDiceRolls(player_score)
         if turn == 0:
-            while dice_number > 0 and sum(computer_score) < 200:
-                while not user_response:
-                    user_response = input("Type anything to proceed with the next round: ")
-                print("-----------------\n", "Round", round_count, "for the computer.")
-                computer_dice_roll()
-                print("The computer's current score is: ", sum(computer_score), "\n",
-                "The computer's roll was: ", roll, "\n"
-                "Dice in the mud pit: ", mud_pit, "\n"
-                "Number of dice to re-roll: ", dice_number)
-                round_count += 1  #after each round, this number goes up.
-                roll.clear()            #clear so it doesn't up all roles from past rounds together.
-                user_response = False
-            if sum(computer_score) >= 200:
-                print("The computer won.")
-                break
-            if dice_number == 0:
-                mud_pit, dice_number, round_count, turn = 0, 5, 1, 1
+            endGame = doDiceRolls(computer_score)
+        if endGame:
+            break
 
     play_again = input("Play again? Y/N: ").upper()
     if play_again != "Y":
         print("Thanks for playing! Goodbye.")
         running = False
+    else:
+        # Reset the game before playing again
+        player_score = [] # Restart player score
+        computer_score = [] # Restart computer score
+        mud_pit, dice_number, round_count = 0, 5, 1 # Reset the mudpit
